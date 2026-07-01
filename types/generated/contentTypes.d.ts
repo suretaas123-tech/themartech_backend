@@ -451,6 +451,9 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     articleType: Schema.Attribute.Enumeration<
       ['news', 'article ', 'whitepaper', 'interview', 'guest', 'podcast']
     >;
@@ -505,6 +508,9 @@ export interface ApiAuthorAuthor extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     articles: Schema.Attribute.Relation<'manyToMany', 'api::article.article'>;
     avatar: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     bio: Schema.Attribute.String;
@@ -538,6 +544,9 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     articles: Schema.Attribute.Relation<'oneToMany', 'api::article.article'>;
     categoryKind: Schema.Attribute.Enumeration<['topic ', 'resource']> &
       Schema.Attribute.Required;
@@ -578,6 +587,9 @@ export interface ApiContactSubmissionContactSubmission
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -611,6 +623,9 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     body: Schema.Attribute.RichText;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -652,6 +667,9 @@ export interface ApiFaqFaq extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     answer: Schema.Attribute.Text;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -679,6 +697,9 @@ export interface ApiMediaKitLeadMediaKitLead
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     company: Schema.Attribute.String & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -711,6 +732,9 @@ export interface ApiNewsletterSubscriberNewsletterSubscriber
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -742,6 +766,9 @@ export interface ApiTagTag extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     articles: Schema.Attribute.Relation<'manyToMany', 'api::article.article'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -770,6 +797,9 @@ export interface ApiWriteForUsSubmissionWriteForUsSubmission
     draftAndPublish: true;
   };
   attributes: {
+    _softDeletedAt: Schema.Attribute.DateTime & Schema.Attribute.Private;
+    _softDeletedById: Schema.Attribute.Integer & Schema.Attribute.Private;
+    _softDeletedByType: Schema.Attribute.String & Schema.Attribute.Private;
     approvalStatus: Schema.Attribute.Enumeration<
       ['pending', 'approved', 'rejected']
     >;

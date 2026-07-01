@@ -15,12 +15,12 @@ async function sendNewsletter(subject, htmlContent) {
           
             subject: `📰 ${subject}`,
           
-            previewText: "Read the latest article from TheABM",
+            previewText: "Read the latest article from TheInfotech",
           
             htmlContent: htmlContent,
           
             sender: {
-              name: "TheABM",
+              name: "TheInfotech",
               email: process.env.BREVO_SENDER,
             },
           

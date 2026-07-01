@@ -3,7 +3,7 @@
 const axios = require('axios');
 
 module.exports = {
-  '*/5 * * * *': async ({ strapi }) => {
+  '30 13 * * *': async ({ strapi }) => {
     try {
       console.log('Running Daily Newsletter...');
       console.log('Cron started:', new Date());
@@ -61,8 +61,8 @@ if (!subscribers.length) {
     const imageUrl = article.featuredImage?.url
   ? article.featuredImage.url.startsWith("http")
     ? article.featuredImage.url
-    : `https://api.theabm.info${article.featuredImage.url}`
-  : "https://theabm.info/logo.png";
+    : `https://api.theinfotech.info${article.featuredImage.url}`
+  : "https://theinfotech.info/logo.png";
 
 console.log("EMAIL IMAGE:", imageUrl);
 
@@ -117,7 +117,7 @@ console.log("EMAIL IMAGE:", imageUrl);
                 margin-bottom:15px;
               "
             >
-              ${article.category?.name || "ABM News"}
+              ${article.category?.name || "Infotech News"}
             </div>
 
             <h2
@@ -144,7 +144,7 @@ console.log("EMAIL IMAGE:", imageUrl);
             </p>
 
             <a
-              href="https://theabm.info/articles/${article.slug}"
+              href="https://theinfotech.info/${article.slug}"
               style="
                 background:#0B5E94;
                 color:#fff;
@@ -212,7 +212,7 @@ console.log("EMAIL IMAGE:", imageUrl);
     line-height:44px;
   "
 >
-Today's ABM News 
+Today's Infotech News 
 </h1>
 
 <p
@@ -223,7 +223,7 @@ Today's ABM News
     line-height:26px;
   "
 >
-All the latest articles from ABM, in one place.
+All the latest articles from Infotech, in one place.
 </p>
 </td>
 </tr>
@@ -262,15 +262,15 @@ for (const subscriber of subscribers) {
       'https://api.brevo.com/v3/smtp/email',
       {
         sender: {
-          name: 'The ABM',
-          email: 'newsletter@theabm.info',
+          name: 'The Infotech',
+          email: 'theinfotech@theinfotech.info',
         },
         to: [
           {
             email: subscriber.email,
           },
         ],
-        subject: "Today's ABM News",
+        subject: "Today's Infotech News",
         htmlContent: html,
       },
       {
