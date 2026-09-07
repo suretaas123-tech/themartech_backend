@@ -2,320 +2,615 @@
 
 const axios = require('axios');
 
+let newsletterRunning = false;
+
 module.exports = {
-  '30 13 * * *': async ({ strapi }) => {
+  '*/5 * * * *': async ({ strapi }) => {
+
+    if (newsletterRunning) {
+      console.log(
+        '⚠️ Newsletter already running - skipping this cron.'
+      );
+      return;
+    }
+
+    newsletterRunning = true;
+
     try {
+
+      console.log('======================================');
       console.log('Running Daily Newsletter...');
       console.log('Cron started:', new Date());
 
-     const articles = await strapi.entityService.findMany(
-  'api::article.article',
-  {
-    filters: {
-      publishedAt: {
-        $notNull: true,
-      },
-      newsletterSent: false,
-    },
-    populate: {
-      featuredImage: true,
-      category: true,
-    },
-    sort: {
-      publishedAt: 'desc',
-    },
-  }
-);
+      // ==========================================
+      // 1. GET ONLY PUBLISHED + UNSENT ARTICLES
+      // ==========================================
 
-console.log("All articles:", articles);
+      let articles = await strapi.db
+        .query('api::article.article')
+        .findMany({
+          where: {
+            publishedAt: {
+              $not: null,
+            },
+            newsletterSent: false,
+          },
 
-articles.forEach(article => {
-  console.log({
-    title: article.title,
-    publishedAt: article.publishedAt,
-    newsletterSent: article.newsletterSent,
-  });
-});
+          orderBy: {
+            publishedAt: 'asc',
+          },
 
+          populate: {
+            featuredImage: true,
+            category: true,
+          },
+        });
 
-if (!articles.length) {
-  console.log('No new articles to send.');
-  return;
-}
+      console.log(
+        'UNSENT PUBLISHED ARTICLES:',
+        articles.length
+      );
 
-      const subscribers = await strapi.entityService.findMany(
-  'api::newsletter-subscriber.newsletter-subscriber',
-  {}
-);
+      // ==========================================
+      // STOP IF NOTHING TO SEND
+      // ==========================================
 
-console.log("Subscribers:", subscribers.length);
+      if (articles.length === 0) {
 
-if (!subscribers.length) {
-  console.log("No subscribers found");
-  return;
-}
+        console.log(
+          '❌ NO UNSENT PUBLISHED ARTICLES - NO EMAIL'
+        );
 
-      // CREATE ARTICLE CARDS
-      const articleList = articles
-  .map((article) => {
-    const imageUrl = article.featuredImage?.url
+        return;
+      }
+
+      // ==========================================
+      // 2. START 1-MINUTE COLLECTION WINDOW
+      // ==========================================
+
+      console.log(
+        '⏳ Articles found.'
+      );
+
+      console.log(
+        '⏳ Waiting 1 minute to collect any additional articles...'
+      );
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, 60 * 1000);
+      });
+
+      console.log(
+        '✅ 1-minute collection window finished.'
+      );
+
+      // ==========================================
+      // 3. RE-FETCH ARTICLES AFTER 1 MINUTE
+      // ==========================================
+
+      articles = await strapi.db
+        .query('api::article.article')
+        .findMany({
+          where: {
+            publishedAt: {
+              $not: null,
+            },
+            newsletterSent: false,
+          },
+
+          orderBy: {
+            publishedAt: 'asc',
+          },
+
+          populate: {
+            featuredImage: true,
+            category: true,
+          },
+        });
+
+      console.log(
+        '📦 FINAL UNSENT ARTICLES:',
+        articles.length
+      );
+
+      if (articles.length === 0) {
+
+        console.log(
+          '❌ NO UNSENT ARTICLES AFTER 1-MINUTE WAIT'
+        );
+
+        return;
+      }
+
+      // ==========================================
+      // 4. LOG EXACT ARTICLES
+      // ==========================================
+
+      articles.forEach((article) => {
+
+        console.log({
+          id: article.id,
+          documentId: article.documentId,
+          title: article.title,
+          slug: article.slug,
+          publishedAt: article.publishedAt,
+          newsletterSent: article.newsletterSent,
+        });
+
+      });
+
+      // ==========================================
+      // 5. GET SUBSCRIBERS
+      // ==========================================
+
+      const subscribers =
+        await strapi.entityService.findMany(
+          'api::newsletter-subscriber.newsletter-subscriber',
+          {}
+        );
+
+      console.log(
+        'SUBSCRIBERS:',
+        subscribers.length
+      );
+
+      if (subscribers.length === 0) {
+
+        console.log(
+          '❌ NO SUBSCRIBERS - NO EMAIL SENT'
+        );
+
+        return;
+      }
+
+      // ==========================================
+      // 6. GET ORIGINAL WEBSITE IMAGE
+      // ==========================================
+
+      const imageUrl = await getOriginalImageUrl(article);
+
+     
+      // ==========================================
+      // 7. CREATE ARTICLE CARDS
+      // ==========================================
+
+      const articleListParts = [];
+
+      for (const article of articles) {
+
+        const imageUrl = article.featuredImage?.url
   ? article.featuredImage.url.startsWith("http")
     ? article.featuredImage.url
-    : `https://api.theinfotech.info${article.featuredImage.url}`
-  : "https://theinfotech.info/logo.png";
+    : `https://api.themartech.info${article.featuredImage.url}`
+      : "https://themartech.info/logo.png";
 
 console.log("EMAIL IMAGE:", imageUrl);
 
+        const category =
+          article.category?.name ||
+          'Martech News';
 
+        const articleUrl =
+          `https://themartech.info/${article.slug}`;
 
-    const description =
-  article.excerpt ||
-  article.description ||
-  "";
+        articleListParts.push(`
 
-    return `
-      <table
-        width="100%"
-        cellpadding="0"
-        cellspacing="0"
-        style="
-          border:1px solid #e5e7eb;
-          border-radius:10px;
-          margin-bottom:25px;
-          background:#ffffff;
-        "
-      >
-        <tr>
+<table
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  border="0"
+  style="
+    border:1px solid #e5e7eb;
+    background:#ffffff;
+    margin-bottom:25px;
+  "
+>
 
-          <!-- LEFT IMAGE -->
-          <td width="30%" style="padding:15px;vertical-align:top;">
-        <img
+<tr>
+
+<td
+  width="30%"
+  valign="top"
+  style="padding:15px;"
+>
+
+<img
   src="${imageUrl}"
   width="180"
+  alt="${article.title || 'The Martech'}"
   style="
     display:block;
     width:180px;
-    max-width:180px;
     height:auto;
-    border-radius:8px;
+    border:0;
+    outline:none;
+    text-decoration:none;
   "
-/>
-          </td>
+>
 
-          <!-- RIGHT CONTENT -->
-          <td width="70%" style="padding:20px;vertical-align:top;">
+</td>
 
-            <div
-              style="
-                display:inline-block;
-                background:#DBEAFE;
-                color:#0B5E94;
-                padding:6px 12px;
-                border-radius:4px;
-                font-size:12px;
-                font-weight:bold;
-                margin-bottom:15px;
-              "
-            >
-              ${article.category?.name || "Infotech News"}
-            </div>
+<td
+  width="70%"
+  valign="top"
+  style="padding:20px;"
+>
 
-            <h2
-              style="
-                margin:0 0 15px;
-                color:#13294B;
-                font-size:19px;
-                line-height:25px;
-                word-break:break-word;
-              "
-            >
-              ${article.title}
-            </h2>
+<div
+  style="
+    background:#DBEAFE;
+    color:#0B5E94;
+    padding:6px 12px;
+    font-family:Arial,sans-serif;
+    font-size:12px;
+    font-weight:bold;
+    display:inline-block;
+  "
+>
+${category}
+</div>
 
-            <p
-              style="
-                color:#5b6472;
-                font-size:14px;
-                line-height:22px;
-                margin-bottom:25px;
-              "
-            >
-              ${description}
-            </p>
+<h2
+  style="
+    margin:15px 0 10px 0;
+    color:#13294B;
+    font-family:Arial,sans-serif;
+    font-size:19px;
+    line-height:25px;
+  "
+>
+${article.title || 'Latest Martech News'}
+</h2>
 
-            <a
-              href="https://theinfotech.info/${article.slug}"
-              style="
-                background:#0B5E94;
-                color:#fff;
-                text-decoration:none;
-                padding:12px 24px;
-                border-radius:6px;
-                display:inline-block;
-                font-weight:bold;
-              "
-            >
-              Read More
-            </a>
 
-          </td>
 
-        </tr>
-      </table>
-    `;
-  })
-  .join("");
+<table
+  cellpadding="0"
+  cellspacing="0"
+  border="0"
+>
 
-      // NEWSLETTER WRAPPER
-     const html = `
+<tr>
+
+<td
+  bgcolor="#0B5E94"
+  style="padding:10px 18px;"
+>
+
+<a
+  href="${articleUrl}"
+  style="
+    color:#ffffff;
+    font-family:Arial,sans-serif;
+    font-size:14px;
+    font-weight:bold;
+    text-decoration:none;
+    display:inline-block;
+  "
+>
+Read More
+</a>
+
+</td>
+
+</tr>
+
+</table>
+
+</td>
+
+</tr>
+
+</table>
+
+        `);
+      }
+
+      const articleList =
+        articleListParts.join('');
+
+      // ==========================================
+      // 8. CREATE ONE EMAIL
+      // ==========================================
+
+      const html = `
+
 <!DOCTYPE html>
+
 <html>
+
+<head>
+
+<meta
+  http-equiv="Content-Type"
+  content="text/html; charset=UTF-8"
+>
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>Today's Martech News</title>
+
+</head>
+
 <body
   style="
     margin:0;
-    padding:30px;
+    padding:0;
     background:#f4f6f9;
     font-family:Arial,sans-serif;
   "
 >
 
-<table width="100%">
+<table
+  width="100%"
+  cellpadding="0"
+  cellspacing="0"
+  border="0"
+  style="background:#f4f6f9;"
+>
+
 <tr>
-<td align="center">
+
+<td
+  align="center"
+  style="padding:30px 10px;"
+>
 
 <table
   width="700"
   cellpadding="0"
   cellspacing="0"
+  border="0"
   style="
     width:100%;
     max-width:700px;
     background:#ffffff;
-    border-radius:12px;
-    overflow:hidden;
   "
 >
 
 <tr>
+
 <td
   align="center"
+  bgcolor="#004B9A"
   style="
     background:#004B9A;
     padding:30px 20px;
   "
 >
+
 <h1
   style="
-    color:#ffffff;
     margin:0;
-    font-size:48px;
-    line-height:44px;
+    color:#ffffff;
+    font-family:Arial,sans-serif;
+    font-size:42px;
+    line-height:48px;
   "
 >
-Today's Infotech News 
+Today's Martech News
 </h1>
 
 <p
   style="
+    margin:10px 0 0 0;
     color:#ffffff;
-    margin:10px 0 0;
+    font-family:Arial,sans-serif;
     font-size:15px;
     line-height:26px;
   "
 >
-All the latest articles from Infotech, in one place.
+All the latest articles from Martech, in one place.
 </p>
+
 </td>
+
 </tr>
 
 <tr>
-<td style="padding:30px;">
+
+<td
+  style="
+    padding:30px;
+    background:#ffffff;
+  "
+>
+
 ${articleList}
+
 </td>
+
 </tr>
 
 </table>
 
 </td>
+
 </tr>
+
 </table>
 
 </body>
+
 </html>
+
 `;
 
-console.log("Articles:", articles.length);
+      console.log(
+        '======================================'
+      );
 
+      console.log(
+        '📧 TOTAL ARTICLES IN ONE EMAIL:',
+        articles.length
+      );
 
-     // SEND EMAILS
-console.log("Articles:", articles.length);
-console.log("Subscribers:", subscribers.length);
-console.log("Starting to send emails...");
+      console.log(
+        '📧 HTML LENGTH:',
+        html.length
+      );
 
-let allEmailsSent = true;
+      // ==========================================
+      // 9. SEND ONE EMAIL PER SUBSCRIBER
+      // ==========================================
 
-for (const subscriber of subscribers) {
-  try {
-    console.log("Sending to:", subscriber.email);
+      let allEmailsSent = true;
 
-    const response = await axios.post(
-      'https://api.brevo.com/v3/smtp/email',
-      {
-        sender: {
-          name: 'The Infotech',
-          email: 'theinfotech@theinfotech.info',
-        },
-        to: [
-          {
-            email: subscriber.email,
-          },
-        ],
-        subject: "Today's Infotech News",
-        htmlContent: html,
-      },
-      {
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'api-key': process.env.BREVO_API_KEY,
-        },
+      for (const subscriber of subscribers) {
+
+        try {
+
+          console.log(
+            '📧 Sending newsletter to:',
+            subscriber.email
+          );
+
+          const response =
+            await axios.post(
+              'https://api.brevo.com/v3/smtp/email',
+              {
+                sender: {
+                  name: 'The Martech',
+                  email:
+                    'themartech@themartech.info',
+                },
+
+                to: [
+                  {
+                    email:
+                      subscriber.email,
+                  },
+                ],
+
+                subject:
+                  "Today's Martech News",
+
+                htmlContent:
+                  html,
+              },
+              {
+                headers: {
+                  accept:
+                    'application/json',
+
+                  'content-type':
+                    'application/json',
+
+                  'api-key':
+                    process.env.BREVO_API_KEY,
+                },
+              }
+            );
+
+          console.log(
+            '✅ EMAIL SENT:',
+            subscriber.email
+          );
+
+          console.log(
+            'Brevo Response:',
+            response.data
+          );
+
+        } catch (error) {
+
+          allEmailsSent = false;
+
+          console.error(
+            '❌ EMAIL FAILED:',
+            subscriber.email
+          );
+
+          console.error(
+            error.response?.data ||
+            error.message
+          );
+        }
       }
-    );
 
-    console.log("✅ Sent to:", subscriber.email);
-    console.log("Brevo Response:", response.data);
+      // ==========================================
+      // 10. ONLY MARK TRUE AFTER ALL EMAILS SENT
+      // ==========================================
 
-  } catch (error) {
-  allEmailsSent = false;
+      if (allEmailsSent) {
 
-  console.error("❌ Failed:", subscriber.email);
-  console.error(error.response?.data || error.message);
-}
-}
-// MARK ARTICLES AS SENT ONLY IF ALL EMAILS WERE SENT
-if (allEmailsSent) {
-  for (const article of articles) {
-    await strapi.entityService.update(
-      'api::article.article',
-      article.id,
-      {
-        data: {
-          newsletterSent: true,
-          newsletterSentAt: new Date(),
-        },
+        console.log(
+          '======================================'
+        );
+
+        console.log(
+          '✅ ALL EMAILS SENT SUCCESSFULLY'
+        );
+
+        for (const article of articles) {
+
+          await strapi.entityService.update(
+            'api::article.article',
+            article.id,
+            {
+              data: {
+                newsletterSent: true,
+                newsletterSentAt:
+                  new Date(),
+              },
+            }
+          );
+
+          console.log(
+            '✅ MARKED TRUE:',
+            article.id,
+            article.title
+          );
+        }
+
+        console.log(
+          '======================================'
+        );
+
+        console.log(
+          '✅ ALL ARTICLES MARKED newsletterSent=true'
+        );
+
+      } else {
+
+        console.log(
+          '======================================'
+        );
+
+        console.log(
+          '❌ SOME EMAILS FAILED'
+        );
+
+        console.log(
+          '❌ ARTICLES REMAIN newsletterSent=false'
+        );
+
       }
-    );
 
-    console.log("Updated:", article.title);
-  }
+    } catch (error) {
 
-  console.log("✅ All articles marked as sent.");
-} else {
-  console.log("❌ Some emails failed. Articles were NOT marked as sent.");
-}
+      console.error(
+        '❌ NEWSLETTER ERROR:',
+        error.response?.data ||
+        error.message ||
+        error
+      );
 
-    } catch (err) {
-      console.error('Newsletter Error:', err.response?.data || err);
+    } finally {
+
+      newsletterRunning = false;
+
+      console.log(
+        'Newsletter cron finished.'
+      );
+
+      console.log(
+        '======================================'
+      );
     }
   },
 };

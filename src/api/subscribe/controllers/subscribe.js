@@ -14,7 +14,7 @@ module.exports = {
         {
           email,
           updateEnabled: true,
-          listIds: [2] // Newsletter_subscribers list ID
+          listIds: [7] // Newsletter_subscribers list ID
         },
         {
           headers: {

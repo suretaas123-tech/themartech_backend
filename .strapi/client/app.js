@@ -4,13 +4,11 @@
  */
 import usersPermissions from "@strapi/plugin-users-permissions/strapi-admin";
 import exportImportStrapi5Plugin from "export-import-strapi5-plugin/strapi-admin";
-import softDelete from "strapi-plugin-soft-delete-contents/strapi-admin";
 import { renderAdmin } from "@strapi/strapi/admin";
 
 renderAdmin(document.getElementById("strapi"), {
   plugins: {
     "users-permissions": usersPermissions,
     "export-import-strapi5-plugin": exportImportStrapi5Plugin,
-    "soft-delete": softDelete,
   },
 });

@@ -7,24 +7,33 @@ module.exports = ({ env }) => ({
       entities: {
         'api::contact-submission.contact-submission': {
           fields: [
-            'title',
-            'slug',
-            'description',
-            'publishedAt',
+            'id',
+            'firstName',
+            'lastName',
+             'email',
+             'phone',   
+             'message',
+             'createdAt'
           ],
         },
 
-        'api::media-kit-lead.media-kit-lead': {
+        'api::write-for-us-submission.write-for-us-submission': {
           fields: [
-            'name',
-            'slug',
+            'id',
+            'fullName',
+            'email',
+            'topic',
+            'approvalStatus',
+            'createdAt'
           ],
         },
 
         'api::newsletter-subscriber.newsletter-subscriber': {
           fields: [
-            'name',
-            'email',
+             'id',
+             'email',
+             'newsletter_status',
+             'createdAt'
           ],
         },
       },
